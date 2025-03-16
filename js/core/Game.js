@@ -63,14 +63,21 @@ class Game {
             0.1, // Near clipping plane
             1000 // Far clipping plane
         );
-        this.camera.position.set(10, 15, 20); // Position camera above and to the side
+        // Position camera parallel to the island surface
+        this.camera.position.set(0, 15, 30); // Position camera from the front
         this.camera.lookAt(0, 0, 0);
         
         // Add orbit controls with restrictions
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
-        this.controls.maxPolarAngle = Math.PI / 2.5; // Limit vertical rotation
+        
+        // Disable camera rotation/movement but keep zoom functionality
+        this.controls.enableRotate = false;
+        this.controls.enablePan = false;
+        this.controls.enableZoom = true;
+        
+        // Set zoom limits
         this.controls.minDistance = 10;
         this.controls.maxDistance = 50;
     }
