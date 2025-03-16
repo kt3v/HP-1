@@ -5,6 +5,7 @@ class Island {
         this.targetCubeCount = targetCubeCount;
         this.cubeSize = cubeSize;
         this.cubes = [];
+        this.secondLayerRatio = 0.5; // Ratio of second layer cubes to first layer cubes
         
         // Create materials
         this.materials = {
@@ -183,14 +184,52 @@ class Island {
         
         console.log(`Created island with ${placedCount} cubes`);
         
-        // Convert the grid to actual 3D cubes
+        // Create a second layer of blocks
+        // We'll use a smaller area for the second layer (inner part of the island)
+        const secondLayerGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(false));
+        const secondLayerCount = Math.floor(this.targetCubeCount * this.secondLayerRatio);
+        let secondLayerPlaced = 0;
+        
+        // Find potential positions for second layer (must be on top of first layer and not at edges)
+        const potentialSecondLayerPositions = [];
+        
         for (let x = 0; x < gridSize; x++) {
             for (let z = 0; z < gridSize; z++) {
                 if (grid[x][z]) {
-                    // Create the main cube (top) - yellow
+                    // Check if this is not at the edge (has no empty neighbors)
+                    if (!this.hasEmptyNeighbor(grid, x, z, gridSize)) {
+                        potentialSecondLayerPositions.push({x, z});
+                    }
+                }
+            }
+        }
+        
+        // Sort positions by distance from center (prioritize center positions)
+        potentialSecondLayerPositions.sort((a, b) => {
+            const distA = Math.pow(a.x - centerPoint, 2) + Math.pow(a.z - centerPoint, 2);
+            const distB = Math.pow(b.x - centerPoint, 2) + Math.pow(b.z - centerPoint, 2);
+            return distA - distB;
+        });
+        
+        // Place second layer blocks starting from center, up to our target count
+        for (const pos of potentialSecondLayerPositions) {
+            if (secondLayerPlaced >= secondLayerCount) break;
+            
+            secondLayerGrid[pos.x][pos.z] = true;
+            secondLayerPlaced++;
+        }
+        
+        console.log(`Added ${secondLayerPlaced} blocks to second layer`);
+        
+        // Convert the grid to actual 3D cubes
+        for (let x = 0; x < gridSize; x++) {
+            for (let z = 0; z < gridSize; z++) {
+                // First layer cubes
+                if (grid[x][z]) {
+                    // Create the main cube - yellow if no second layer above, dirt if second layer above
                     const cube = new THREE.Mesh(
                         this.cubeGeometry,
-                        this.materials.surface
+                        secondLayerGrid[x][z] ? this.materials.dirt : this.materials.surface
                     );
                     
                     // Position the cube (centered around origin)
@@ -210,6 +249,24 @@ class Island {
                     dirtCube.castShadow = false;
                     dirtCube.receiveShadow = false;
                     this.cubes.push(dirtCube);
+                }
+                
+                // Second layer cubes
+                if (secondLayerGrid[x][z]) {
+                    // Create second layer cube (always yellow surface)
+                    const secondLayerCube = new THREE.Mesh(
+                        this.cubeGeometry,
+                        this.materials.surface
+                    );
+                    
+                    // Position one cube higher than the first layer
+                    secondLayerCube.position.x = (x - centerPoint) * this.cubeSize;
+                    secondLayerCube.position.z = (z - centerPoint) * this.cubeSize;
+                    secondLayerCube.position.y = this.cubeSize;
+                    
+                    secondLayerCube.castShadow = true;
+                    secondLayerCube.receiveShadow = true;
+                    this.cubes.push(secondLayerCube);
                 }
             }
         }
