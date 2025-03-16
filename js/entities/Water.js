@@ -5,12 +5,23 @@ class Water {
         // Create a simple water plane with animated material
         this.geometry = new THREE.PlaneGeometry(size, size, segments, segments);
         
+        // Load water texture
+        const textureLoader = new THREE.TextureLoader();
+        const waterTexture = textureLoader.load('assets/textures/water.png');
+        
+        // Set texture to repeat
+        waterTexture.wrapS = THREE.RepeatWrapping;
+        waterTexture.wrapT = THREE.RepeatWrapping;
+        waterTexture.repeat.set(10, 10); // Increased repeat for smaller scale texture
+        
         // Create water material
         this.material = new THREE.MeshStandardMaterial({
-            color: 0x0077be,
+            color: 0xffffff, // White color to show texture properly
+            map: waterTexture,
             metalness: 0.1,
             roughness: 0.3,
-            transparent: false,
+            transparent: true,
+            opacity: 0.9, // Slight transparency for water
             depthWrite: true,
             renderOrder: 0 // Ensure water renders before character
         });

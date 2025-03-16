@@ -82,10 +82,17 @@ class Game {
     }
     
     createLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Улучшенное окружающее освещение - повышена интенсивность
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        // Добавляем полусферическое освещение для более естественного и насыщенного освещения
+        // Верхний цвет - голубоватый, нижний - теплый
+        const hemisphereLight = new THREE.HemisphereLight(0x80b5ff, 0xffd700, 0.6);
+        this.scene.add(hemisphereLight);
+        
+        // Улучшенное направленное освещение - повышена интенсивность и теплее цвет
+        const directionalLight = new THREE.DirectionalLight(0xffffcc, 1.2);
         directionalLight.position.set(50, 200, 100);
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize.width = 1024;
