@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Water } from '../entities/Water.js';
 import { Island } from '../entities/Island.js';
 import { Character } from '../entities/Character.js';
 import { InputController } from '../controls/InputController.js';
+import { Camera } from './Camera.js';
 
 class Game {
     constructor() {
@@ -44,6 +44,9 @@ class Game {
         this.character = new Character();
         this.scene.add(this.character.mesh);
         
+        // Set character as the camera target
+        this.cameraController.setTarget(this.character);
+        
         // Setup controls
         this.inputController = new InputController(this.character);
         
@@ -57,29 +60,16 @@ class Game {
     }
     
     createCamera() {
-        this.camera = new THREE.PerspectiveCamera(
-            45, // Field of view
-            window.innerWidth / window.innerHeight, // Aspect ratio
-            0.1, // Near clipping plane
-            1000 // Far clipping plane
-        );
-        // Position camera parallel to the island surface
-        this.camera.position.set(0, 15, 30); // Position camera from the front
-        this.camera.lookAt(0, 0, 0);
+        // Create camera instance with renderer
+        this.cameraController = new Camera(this.renderer);
+        // Get the THREE.js camera object
+        this.camera = this.cameraController.getCamera();
         
-        // Add orbit controls with restrictions
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
-        
-        // Disable camera rotation/movement but keep zoom functionality
-        this.controls.enableRotate = false;
-        this.controls.enablePan = false;
-        this.controls.enableZoom = true;
-        
-        // Set zoom limits
-        this.controls.minDistance = 10;
-        this.controls.maxDistance = 50;
+        // Listen for camera changes
+        this.cameraController.onCameraChange((newCamera) => {
+            this.camera = newCamera;
+            console.log('Game: Camera reference updated');
+        });
     }
     
     createRenderer() {
@@ -110,8 +100,7 @@ class Game {
     }
     
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
+        this.cameraController.onWindowResize();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     
@@ -124,8 +113,8 @@ class Game {
         if (this.water) this.water.update(deltaTime);
         if (this.character) this.character.update(deltaTime, this.camera, this.island);
         
-        // Update controls
-        this.controls.update();
+        // Update camera (includes controls update)
+        this.cameraController.update();
         
         // Render scene
         this.renderer.render(this.scene, this.camera);

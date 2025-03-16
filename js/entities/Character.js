@@ -187,7 +187,14 @@ class Character {
         // Make the character always face the camera (billboard technique)
         if (camera) {
             const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
+            // Check if camera is a THREE.Camera or our Camera controller
+            if (camera.isCamera) {
+                camera.getWorldDirection(cameraDirection);
+            } else if (camera.getCamera) {
+                // If it's our Camera controller, get the THREE.js camera
+                camera.getCamera().getWorldDirection(cameraDirection);
+            }
+            
             cameraDirection.y = 0; // Keep character upright
             this.mesh.lookAt(
                 this.mesh.position.x - cameraDirection.x,
@@ -209,8 +216,12 @@ class Character {
         vector.copy(this.mesh.position);
         vector.y += 1.5; // Position above the character's head
         
+        // Get the actual THREE.js camera object
+        const threeCamera = camera.isCamera ? camera : (camera.getCamera ? camera.getCamera() : null);
+        if (!threeCamera) return;
+        
         // Project 3D position to 2D screen space
-        vector.project(camera);
+        vector.project(threeCamera);
         
         // Convert to CSS coordinates
         vector.x = (vector.x * widthHalf) + widthHalf;

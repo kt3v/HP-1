@@ -9,7 +9,7 @@ class Island {
         
         // Create materials
         this.materials = {
-            surface: new THREE.MeshStandardMaterial({ color: 0xFFFF00 }), // Yellow
+            surface: new THREE.MeshStandardMaterial({ color: 0xFFEA00 }), // Yellow
             dirt: new THREE.MeshStandardMaterial({ color: 0x8b4513 }) // Brown
         };
         
