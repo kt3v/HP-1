@@ -12,14 +12,17 @@ class Character {
     createMesh() {
         const geometry = new THREE.PlaneGeometry(1.5, 1.5);
         
-        // Create a canvas for the face
+        // Create a canvas for the face with transparency
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const context = canvas.getContext('2d');
         
-        // Draw a simple face on the canvas
-        context.fillStyle = '#FFD700'; // Golden face
+        // Clear the canvas with full transparency
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw a simple face on the canvas with clean edges
+        context.fillStyle = '#FFD700'; // Yellow face
         context.beginPath();
         context.arc(128, 128, 120, 0, Math.PI * 2); // Circle for face
         context.fill();
@@ -36,18 +39,27 @@ class Character {
         context.arc(128, 140, 50, 0, Math.PI);
         context.stroke();
         
-        // Create texture from canvas
+        // Create texture from canvas with improved settings
         const texture = new THREE.CanvasTexture(canvas);
+        texture.premultiplyAlpha = true; // Fix transparency edge artifacts
+        
         const material = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            alphaTest: 0.5, // Higher threshold to discard semi-transparent pixels
+            depthTest: true,
+            depthWrite: true, // Enable depth writing
+            renderOrder: 1 // Ensure character renders after water
         });
         
         this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.set(0, 1, 0); // Position above the island
+        this.mesh.position.set(0, 2, 0); // Position higher above the water level
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = false;
+        this.mesh.renderOrder = 10; // Ensure character always renders on top
+        this.mesh.material.polygonOffset = true;
+        this.mesh.material.polygonOffsetFactor = -1; // Move the character forward in depth
     }
     
     move(direction) {
@@ -60,21 +72,7 @@ class Character {
             this.mesh.position.x += this.movementDirection.x * this.speed;
             this.mesh.position.z += this.movementDirection.z * this.speed;
             
-            // Limit character to island bounds (with some margin)
-            const islandRadius = 4.5;
-            const characterRadius = 0.75;
-            const totalRadius = islandRadius - characterRadius;
-            
-            const distance = Math.sqrt(
-                this.mesh.position.x * this.mesh.position.x + 
-                this.mesh.position.z * this.mesh.position.z
-            );
-            
-            if (distance > totalRadius) {
-                const angle = Math.atan2(this.mesh.position.z, this.mesh.position.x);
-                this.mesh.position.x = Math.cos(angle) * totalRadius;
-                this.mesh.position.z = Math.sin(angle) * totalRadius;
-            }
+            // No boundary restriction - character can move freely
         }
         
         // Make the character always face the camera (billboard technique)

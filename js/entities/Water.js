@@ -11,7 +11,9 @@ class Water {
             metalness: 0.1,
             roughness: 0.3,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.8,
+            depthWrite: true,
+            renderOrder: 0 // Ensure water renders before character
         });
         
         this.mesh = new THREE.Mesh(this.geometry, this.material);

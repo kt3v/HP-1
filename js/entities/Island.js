@@ -8,9 +8,8 @@ class Island {
         
         // Create materials
         this.materials = {
-            grass: new THREE.MeshStandardMaterial({ color: 0x3cb043 }), // Grass green
-            dirt: new THREE.MeshStandardMaterial({ color: 0x8b4513 }), // Brown
-            sand: new THREE.MeshStandardMaterial({ color: 0xc2b280 }) // Sand color
+            surface: new THREE.MeshStandardMaterial({ color: 0xFFFF00 }), // Yellow
+            dirt: new THREE.MeshStandardMaterial({ color: 0x8b4513 }) // Brown
         };
         
         // Create geometry
@@ -24,27 +23,19 @@ class Island {
         // Calculate center offset to center the island
         const centerOffset = (this.size - 1) / 2;
         
-        // Create island with slight height variations
+        // Create island with all cubes the same height and color
         for (let x = 0; x < this.size; x++) {
             for (let z = 0; z < this.size; z++) {
-                // Determine if this is an edge cube (for beach)
-                const isEdge = x === 0 || z === 0 || x === this.size - 1 || z === this.size - 1;
-                
-                // Create the main cube (top)
+                // Create the main cube (top) - all yellow now
                 const cube = new THREE.Mesh(
                     this.cubeGeometry,
-                    isEdge ? this.materials.sand : this.materials.grass
+                    this.materials.surface // All cubes are yellow
                 );
                 
                 // Position the cube
                 cube.position.x = (x - centerOffset) * this.cubeSize;
                 cube.position.z = (z - centerOffset) * this.cubeSize;
-                cube.position.y = 0; // Base level
-                
-                // Add some random height variation for non-edge cubes
-                if (!isEdge && Math.random() > 0.7) {
-                    cube.position.y += 0.5 * Math.random();
-                }
+                cube.position.y = 0; // All cubes at the same height
                 
                 cube.castShadow = true;
                 cube.receiveShadow = true;
