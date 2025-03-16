@@ -7,7 +7,7 @@ class Water {
         
         // Load water texture
         const textureLoader = new THREE.TextureLoader();
-        const waterTexture = textureLoader.load('assets/textures/water.png');
+        const waterTexture = textureLoader.load('assets/textures/w2.png');
         
         // Set texture to repeat
         waterTexture.wrapS = THREE.RepeatWrapping;
@@ -16,7 +16,7 @@ class Water {
         
         // Create water material
         this.material = new THREE.MeshStandardMaterial({
-            color: 0xffffff, // White color to show texture properly
+            color: 0x85DEFE, // White color to show texture properly
             map: waterTexture,
             metalness: 0.1,
             roughness: 0.3,
