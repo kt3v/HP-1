@@ -122,7 +122,7 @@ class Game {
         
         // Update entities
         if (this.water) this.water.update(deltaTime);
-        if (this.character) this.character.update(deltaTime, this.camera);
+        if (this.character) this.character.update(deltaTime, this.camera, this.island);
         
         // Update controls
         this.controls.update();
