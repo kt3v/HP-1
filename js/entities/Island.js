@@ -241,14 +241,7 @@ class Island {
                     cube.receiveShadow = true;
                     this.cubes.push(cube);
                     
-                    // Add dirt cube below
-                    const dirtCube = new THREE.Mesh(this.cubeGeometry, this.materials.dirt);
-                    dirtCube.position.x = cube.position.x;
-                    dirtCube.position.z = cube.position.z;
-                    dirtCube.position.y = -this.cubeSize;
-                    dirtCube.castShadow = false;
-                    dirtCube.receiveShadow = false;
-                    this.cubes.push(dirtCube);
+                    // Removed the bottom dirt cube layer as requested
                 }
                 
                 // Second layer cubes

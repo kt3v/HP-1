@@ -10,8 +10,7 @@ class Water {
             color: 0x0077be,
             metalness: 0.1,
             roughness: 0.3,
-            transparent: true,
-            opacity: 0.8,
+            transparent: false,
             depthWrite: true,
             renderOrder: 0 // Ensure water renders before character
         });
