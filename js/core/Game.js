@@ -38,7 +38,7 @@ class Game {
         this.water = new Water();
         this.scene.add(this.water.mesh);
         
-        this.island = new Island(10, 1); // 10x10 island with 1 unit cube size
+        this.island = new Island(100, 1); // Create island with 100 cubes and 1 unit cube size
         this.island.addToScene(this.scene);
         
         this.character = new Character();
