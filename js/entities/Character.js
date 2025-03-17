@@ -9,7 +9,7 @@ class Character {
         // Height adjustment properties
         this.targetHeight = 2.0; // Увеличенная высота над землей
         this.verticalSpeed = 0.1; // Speed of vertical adjustment
-        this.waterLevel = -0.2; // Same as in Water.js
+        this.waterLevel = -0.8; // Same as in Water.js
         this.defaultHeightAboveTerrain = 1.25; // Увеличенная высота над землей
         
         // Animation properties
