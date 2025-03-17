@@ -4,17 +4,34 @@ class Character {
     constructor() {
         this.speed = 0.05;
         this.movementDirection = new THREE.Vector3(0, 0, 0);
+        this.lastDirection = 'down'; // Default direction (down, up, left, right)
         
         // Height adjustment properties
-        this.targetHeight = 2; // Default height above terrain
-        this.verticalSpeed = 0.05; // Speed of vertical adjustment
+        this.targetHeight = 2.0; // Увеличенная высота над землей
+        this.verticalSpeed = 0.1; // Speed of vertical adjustment
         this.waterLevel = -0.2; // Same as in Water.js
-        this.defaultHeightAboveTerrain = 1.0; // Default height above terrain
+        this.defaultHeightAboveTerrain = 1.25; // Увеличенная высота над землей
+        
+        // Animation properties
+        this.isMoving = false;
+        this.currentFrame = 0;
+        this.animationSpeed = 0.15; // Frames per second * deltaTime
+        this.frameTime = 0;
+        this.sprites = {
+            idle: null,
+            down: [],
+            up: [],
+            left: [],
+            right: []
+        };
+        
+        // Load all sprites
+        this.loadSprites();
         
         // Debug text element
         this.createDebugText();
         
-        // Create a 2D face in 3D space (billboard technique)
+        // Create character mesh
         this.createMesh();
     }
     
@@ -36,61 +53,87 @@ class Character {
         document.body.appendChild(this.debugElement);
     }
     
+    loadSprites() {
+        const textureLoader = new THREE.TextureLoader();
+        
+        // Функция для применения NearestFilter к текстуре
+        const loadPixelTexture = (path) => {
+            const texture = textureLoader.load(path);
+            texture.magFilter = THREE.NearestFilter; // Для увеличения (приближения)
+            texture.minFilter = THREE.NearestFilter; // Для уменьшения (отдаления)
+            return texture;
+        };
+        
+        // Load idle sprite с NearestFilter
+        this.sprites.idle = loadPixelTexture('assets/character/idle.png');
+        
+        // Правильное распределение спрайтов по направлениям
+        // Down direction (sprites 0-5)
+        for (let i = 0; i < 6; i++) {
+            this.sprites.down.push(loadPixelTexture(`assets/character/walk/${i.toString().padStart(3, '0')}.png`));
+        }
+        
+        // Left direction (sprites 6-11)
+        for (let i = 6; i < 12; i++) {
+            this.sprites.left.push(loadPixelTexture(`assets/character/walk/${i.toString().padStart(3, '0')}.png`));
+        }
+        
+        // Right direction (sprites 12-17)
+        for (let i = 12; i < 18; i++) {
+            this.sprites.right.push(loadPixelTexture(`assets/character/walk/${i.toString().padStart(3, '0')}.png`));
+        }
+        
+        // Up direction (sprites 18-23)
+        for (let i = 18; i < 24; i++) {
+            this.sprites.up.push(loadPixelTexture(`assets/character/walk/${i.toString().padStart(3, '0')}.png`));
+        }
+    }
+    
     createMesh() {
-        const geometry = new THREE.PlaneGeometry(1.5, 1.5);
+        // Увеличенный размер персонажа (в 2 раза больше)
+        const geometry = new THREE.PlaneGeometry(4, 4); // Doubled size for the character sprites
         
-        // Create a canvas for the face with transparency
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const context = canvas.getContext('2d');
-        
-        // Clear the canvas with full transparency
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw a simple face on the canvas with clean edges
-        context.fillStyle = '#FFD700'; // Yellow face
-        context.beginPath();
-        context.arc(128, 128, 120, 0, Math.PI * 2); // Circle for face
-        context.fill();
-        
-        // Eyes
-        context.fillStyle = '#000000';
-        context.beginPath();
-        context.arc(90, 100, 15, 0, Math.PI * 2); // Left eye
-        context.arc(166, 100, 15, 0, Math.PI * 2); // Right eye
-        context.fill();
-        
-        // Smile
-        context.beginPath();
-        context.arc(128, 140, 50, 0, Math.PI);
-        context.stroke();
-        
-        // Create texture from canvas with improved settings
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.premultiplyAlpha = true; // Fix transparency edge artifacts
-        
+        // Start with idle texture
         const material = new THREE.MeshBasicMaterial({
-            map: texture,
+            map: this.sprites.idle,
             transparent: true,
             side: THREE.DoubleSide,
-            alphaTest: 0.5, // Higher threshold to discard semi-transparent pixels
+            alphaTest: 0.5,
             depthTest: true,
-            depthWrite: true, // Enable depth writing
-            renderOrder: 1 // Ensure character renders after water
+            depthWrite: true,
+            renderOrder: 1
         });
         
         this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.set(0, 2, 0); // Position higher above the water level
+        // Увеличиваем высоту позиции, чтобы персонаж не входил в землю
+        this.mesh.position.set(0, 2.5, 0); // Увеличенная высота над землей
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = false;
         this.mesh.renderOrder = 10; // Ensure character always renders on top
         this.mesh.material.polygonOffset = true;
         this.mesh.material.polygonOffsetFactor = -1; // Move the character forward in depth
+        
+        // Создаем обводку для визуализации границ персонажа
+        this.createBoundingBox();
     }
     
     move(direction) {
         this.movementDirection.copy(direction);
+        
+        // Determine if the character is moving
+        this.isMoving = direction.length() > 0;
+        
+        // Determine the direction the character is facing based on movement
+        if (this.isMoving) {
+            // Find the dominant direction (x or z)
+            if (Math.abs(direction.x) > Math.abs(direction.z)) {
+                // Moving primarily left or right
+                this.lastDirection = direction.x > 0 ? 'right' : 'left';
+            } else {
+                // Moving primarily up or down
+                this.lastDirection = direction.z > 0 ? 'down' : 'up';
+            }
+        }
     }
     
     // Check if character is over island or water and get appropriate height
@@ -181,27 +224,70 @@ class Character {
             }
         }
         
+        // Обновляем позицию маркера земли для отображения точки соприкосновения с землей
+        if (this.groundMarker) {
+            // Обновляем позицию маркера земли так, чтобы он был на уровне земли
+            // Увеличиваем смещение вниз, чтобы маркер был на уровне земли
+            this.groundMarker.position.y = -this.defaultHeightAboveTerrain - 0.5;
+        }
+        
+        // Update animation
+        this.updateAnimation(deltaTime);
+        
         // Update debug text with current height information
         this.updateDebugText(terrainHeight, camera);
         
-        // Make the character always face the camera (billboard technique)
-        if (camera) {
-            const cameraDirection = new THREE.Vector3();
-            // Check if camera is a THREE.Camera or our Camera controller
-            if (camera.isCamera) {
-                camera.getWorldDirection(cameraDirection);
-            } else if (camera.getCamera) {
-                // If it's our Camera controller, get the THREE.js camera
-                camera.getCamera().getWorldDirection(cameraDirection);
-            }
-            
-            cameraDirection.y = 0; // Keep character upright
-            this.mesh.lookAt(
-                this.mesh.position.x - cameraDirection.x,
-                this.mesh.position.y,
-                this.mesh.position.z - cameraDirection.z
-            );
+        // We no longer need to make the character face the camera since we're using directional sprites
+    }
+    
+    createBoundingBox() {
+        // Создаем куб для визуализации границ персонажа
+        const boxSize = 1.5; // Увеличенный размер куба
+        const boxGeometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+        
+        // Материал для куба - прозрачный с обводкой
+        const boxMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00, // Зеленый цвет
+            transparent: true,
+            opacity: 0.2,
+            wireframe: true // Режим каркаса для отображения только граней
+        });
+        
+        // Создаем куб для обводки
+        this.boundingBox = new THREE.Mesh(boxGeometry, boxMaterial);
+        this.boundingBox.position.set(0, 0, 0); // Позиция относительно персонажа
+        
+        // Также создаем второй куб для отображения точки соприкосновения с землей
+        const groundMarkerGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        const groundMarkerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Красный цвет
+        this.groundMarker = new THREE.Mesh(groundMarkerGeometry, groundMarkerMaterial);
+        this.groundMarker.position.set(0, -0.75, 0); // Позиция в нижней части куба
+        
+        // Добавляем оба объекта к персонажу
+        this.mesh.add(this.boundingBox);
+        this.mesh.add(this.groundMarker);
+    }
+    
+    updateAnimation(deltaTime) {
+        // Update animation frame
+        this.frameTime += deltaTime;
+        
+        if (this.frameTime >= this.animationSpeed) {
+            this.frameTime = 0;
+            this.currentFrame = (this.currentFrame + 1) % 6; // 6 frames per animation
         }
+        
+        // Update the texture based on movement state and direction
+        if (this.isMoving) {
+            // Use the appropriate walking animation based on direction
+            this.mesh.material.map = this.sprites[this.lastDirection][this.currentFrame];
+        } else {
+            // Use idle texture when not moving
+            this.mesh.material.map = this.sprites.idle;
+        }
+        
+        // Make sure to update the material
+        this.mesh.material.needsUpdate = true;
     }
     // Update debug text position and content
     updateDebugText(terrainHeight, camera) {
@@ -239,7 +325,11 @@ class Character {
 ` + 
                                       `Target: ${this.targetHeight.toFixed(2)}
 ` + 
-                                      `Terrain: ${terrainHeight.toFixed(2)} (${terrainType})`;
+                                      `Terrain: ${terrainHeight.toFixed(2)} (${terrainType})
+` + 
+                                      `Direction: ${this.lastDirection}
+` + 
+                                      `Moving: ${this.isMoving ? 'Yes' : 'No'}`;
     }
 }
 
