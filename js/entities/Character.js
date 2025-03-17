@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Raft } from './Raft.js';
 
 class Character {
     constructor() {
@@ -9,7 +10,7 @@ class Character {
         // Height adjustment properties
         this.targetHeight = 2.0; // Увеличенная высота над землей
         this.verticalSpeed = 0.1; // Speed of vertical adjustment
-        this.waterLevel = -0.8; // Same as in Water.js
+        this.waterLevel = -0.1;
         this.defaultHeightAboveTerrain = 1.25; // Увеличенная высота над землей
         
         // Animation properties
@@ -33,6 +34,10 @@ class Character {
         
         // Create character mesh
         this.createMesh();
+        
+        // Create raft
+        this.raft = new Raft();
+        this.isOnWater = false; // Track if character is on water
     }
     
     createDebugText() {
@@ -209,6 +214,23 @@ class Character {
         // Set target height above terrain (or water)
         this.targetHeight = terrainHeight + this.defaultHeightAboveTerrain;
         
+        // Check if character is on water and update raft visibility
+        const wasOnWater = this.isOnWater;
+        this.isOnWater = terrainHeight === this.waterLevel;
+        
+        // Show or hide raft based on water status
+        if (this.isOnWater && !wasOnWater) {
+            this.raft.show();
+        } else if (!this.isOnWater && wasOnWater) {
+            this.raft.hide();
+        }
+        
+        // Update raft position and animation
+        if (this.raft) {
+            // Pass both position and movement direction to the raft
+            this.raft.update(deltaTime, this.mesh.position, this.movementDirection);
+        }
+        
         // Smoothly adjust to target height
         if (Math.abs(this.mesh.position.y - this.targetHeight) > 0.01) {
             if (this.mesh.position.y < this.targetHeight) {
@@ -277,13 +299,18 @@ class Character {
             this.currentFrame = (this.currentFrame + 1) % 6; // 6 frames per animation
         }
         
-        // Update the texture based on movement state and direction
-        if (this.isMoving) {
-            // Use the appropriate walking animation based on direction
-            this.mesh.material.map = this.sprites[this.lastDirection][this.currentFrame];
-        } else {
-            // Use idle texture when not moving
+        // If on water (raft), always use idle animation regardless of movement
+        if (this.isOnWater) {
             this.mesh.material.map = this.sprites.idle;
+        } else {
+            // Normal animation when not on water
+            if (this.isMoving) {
+                // Use the appropriate walking animation based on direction
+                this.mesh.material.map = this.sprites[this.lastDirection][this.currentFrame];
+            } else {
+                // Use idle texture when not moving
+                this.mesh.material.map = this.sprites.idle;
+            }
         }
         
         // Make sure to update the material
@@ -321,6 +348,14 @@ class Character {
         const terrainType = terrainHeight === this.waterLevel ? 'Water' : 
                            terrainHeight === 0 ? 'Ground (L1)' : 'Ground (L2)';
         
+        // Determine animation state text
+        let animationState = 'Idle';
+        if (!this.isOnWater && this.isMoving) {
+            animationState = `Walking (${this.lastDirection})`;
+        } else if (this.isOnWater) {
+            animationState = 'Idle (on raft)';
+        }
+        
         this.debugElement.textContent = `Height: ${this.mesh.position.y.toFixed(2)}
 ` + 
                                       `Target: ${this.targetHeight.toFixed(2)}
@@ -329,7 +364,11 @@ class Character {
 ` + 
                                       `Direction: ${this.lastDirection}
 ` + 
-                                      `Moving: ${this.isMoving ? 'Yes' : 'No'}`;
+                                      `Moving: ${this.isMoving ? 'Yes' : 'No'}
+` + 
+                                      `Animation: ${animationState}
+` + 
+                                      `Raft: ${this.isOnWater ? 'Visible' : 'Hidden'} (${this.raft.currentY.toFixed(2)})`;
     }
 }
 

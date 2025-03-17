@@ -4,6 +4,7 @@ import { Island } from '../entities/Island.js';
 import { Character } from '../entities/Character.js';
 import { InputController } from '../controls/InputController.js';
 import { Camera } from './Camera.js';
+import { soundManager } from '../audio/SoundManager.js';
 
 class Game {
     constructor() {
@@ -34,6 +35,9 @@ class Game {
         this.createCamera();
         this.createLights();
         
+        // Initialize sound manager
+        soundManager.init();
+        
         // Create game entities
         this.water = new Water();
         this.scene.add(this.water.mesh);
@@ -43,6 +47,8 @@ class Game {
         
         this.character = new Character();
         this.scene.add(this.character.mesh);
+        this.scene.add(this.character.raft.mesh); // Add raft to scene
+        this.scene.add(this.character.raft.splashEffect.mesh); // Add splash effect to scene
         
         // Set character as the camera target
         this.cameraController.setTarget(this.character);
