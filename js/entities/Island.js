@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Palm } from './Palm.js';
 
 class Island {
     constructor(targetCubeCount = 100, cubeSize = 1) {
@@ -6,6 +7,13 @@ class Island {
         this.cubeSize = cubeSize;
         this.cubes = [];
         this.secondLayerRatio = 0.5; // Ratio of second layer cubes to first layer cubes
+        this.palm = null; // Reference to the palm object
+        
+        // Block map to track all blocks on the island
+        // This will be a 2D grid where each cell contains the highest block at that position
+        this.blockMap = null;
+        this.gridSize = 25; // Size of the grid (same as in buildIsland)
+        this.centerPoint = Math.floor(this.gridSize / 2); // Center point of the grid
         
         // Create materials
         const textureLoader = new THREE.TextureLoader();
@@ -224,6 +232,9 @@ class Island {
         
         console.log(`Added ${secondLayerPlaced} blocks to second layer`);
         
+        // Initialize the block map
+        this.blockMap = Array(gridSize).fill().map(() => Array(gridSize).fill(null));
+        
         // Convert the grid to actual 3D cubes
         for (let x = 0; x < gridSize; x++) {
             for (let z = 0; z < gridSize; z++) {
@@ -244,6 +255,14 @@ class Island {
                     cube.receiveShadow = true;
                     this.cubes.push(cube);
                     
+                    // Store the cube in the block map with its grid coordinates
+                    cube.gridX = x;
+                    cube.gridZ = z;
+                    cube.gridY = 0; // First layer
+                    
+                    // Update the block map with this cube
+                    this.blockMap[x][z] = { height: 0, cube: cube };
+                    
                     // Removed the bottom dirt cube layer as requested
                 }
                 
@@ -263,9 +282,19 @@ class Island {
                     secondLayerCube.castShadow = true;
                     secondLayerCube.receiveShadow = true;
                     this.cubes.push(secondLayerCube);
+                    
+                    // Store the cube in the block map with its grid coordinates
+                    secondLayerCube.gridX = x;
+                    secondLayerCube.gridZ = z;
+                    secondLayerCube.gridY = 1; // Second layer
+                    
+                    // Update the block map with this cube (overwriting first layer entry)
+                    this.blockMap[x][z] = { height: 1, cube: secondLayerCube };
                 }
             }
         }
+        
+        console.log('Block map created with dimensions:', this.blockMap.length, 'x', this.blockMap[0].length);
     }
     
     // Helper method to check if a position has an adjacent cube
@@ -523,6 +552,11 @@ class Island {
         this.cubes.forEach(cube => {
             scene.add(cube);
         });
+        
+        // Create and add a palm tree to the island using the new spawn system
+        this.palm = new Palm();
+        this.spawnObjectRandomly(this.palm);
+        this.palm.addToScene(scene);
     }
     
     // Get the radius of the island (for collision detection)
@@ -530,6 +564,109 @@ class Island {
         // Calculate radius based on the square root of the target cube count
         // This is an approximation that works well for our randomly generated island
         return Math.sqrt(this.targetCubeCount) * this.cubeSize;
+    }
+    
+    // Convert world coordinates to grid coordinates
+    worldToGrid(x, z) {
+        // Convert world coordinates to grid coordinates
+        const gridX = Math.round(x / this.cubeSize + this.centerPoint);
+        const gridZ = Math.round(z / this.cubeSize + this.centerPoint);
+        return { x: gridX, z: gridZ };
+    }
+    
+    // Convert grid coordinates to world coordinates
+    gridToWorld(gridX, gridZ) {
+        // Convert grid coordinates to world coordinates
+        const worldX = (gridX - this.centerPoint) * this.cubeSize;
+        const worldZ = (gridZ - this.centerPoint) * this.cubeSize;
+        return { x: worldX, z: worldZ };
+    }
+    
+    // Get the height at a specific world position
+    getHeightAt(x, z) {
+        // Convert world coordinates to grid coordinates
+        const gridPos = this.worldToGrid(x, z);
+        
+        // Check if the position is within the grid bounds
+        if (gridPos.x >= 0 && gridPos.x < this.gridSize && gridPos.z >= 0 && gridPos.z < this.gridSize) {
+            // Get the block at this position
+            const block = this.blockMap[gridPos.x][gridPos.z];
+            
+            // If there's a block, return its height + 1 (to place on top)
+            if (block) {
+                return (block.height + 1) * this.cubeSize;
+            }
+        }
+        
+        // If no block or out of bounds, return a default height (water level)
+        return -0.1; // Water level
+    }
+    
+    // Find a random position on the highest blocks of the island
+    findRandomTopPosition() {
+        // Collect all the highest blocks (preferring second layer)
+        const topBlocks = [];
+        
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let z = 0; z < this.gridSize; z++) {
+                const block = this.blockMap[x][z];
+                if (block && block.height === 1) { // Second layer blocks
+                    topBlocks.push(block);
+                }
+            }
+        }
+        
+        // If no second layer blocks, try first layer blocks
+        if (topBlocks.length === 0) {
+            for (let x = 0; x < this.gridSize; x++) {
+                for (let z = 0; z < this.gridSize; z++) {
+                    const block = this.blockMap[x][z];
+                    if (block && block.height === 0) { // First layer blocks
+                        topBlocks.push(block);
+                    }
+                }
+            }
+        }
+        
+        // If we found any blocks, choose a random one
+        if (topBlocks.length > 0) {
+            const randomBlock = topBlocks[Math.floor(Math.random() * topBlocks.length)];
+            const worldPos = this.gridToWorld(randomBlock.cube.gridX, randomBlock.cube.gridZ);
+            
+            // Return the position with the correct height
+            return {
+                x: worldPos.x,
+                y: (randomBlock.height + 1) * this.cubeSize, // Position on top of the block
+                z: worldPos.z,
+                block: randomBlock.cube
+            };
+        }
+        
+        // Fallback to center of the island if no blocks found
+        return { x: 0, y: this.cubeSize, z: 0, block: null };
+    }
+    
+    // Spawn an object at a random position on the highest blocks
+    spawnObjectRandomly(object) {
+        const position = this.findRandomTopPosition();
+        
+        // Set the object's position
+        object.mesh.position.set(position.x, position.y, position.z);
+        
+        // Return the position and block for reference
+        return position;
+    }
+    
+    // Spawn an object at a specific world position, adjusting height automatically
+    spawnObjectAt(object, x, z) {
+        // Get the correct height at this position
+        const y = this.getHeightAt(x, z);
+        
+        // Set the object's position
+        object.mesh.position.set(x, y, z);
+        
+        // Return the final position
+        return { x, y, z };
     }
 }
 

@@ -146,55 +146,20 @@ class Character {
         // Default to water level if no island is provided
         if (!island) return this.waterLevel;
         
-        // We'll check if the character is directly above any island cube
-        // This is more precise than using a simple radius check
+        // Use the island's block map system to get the height
+        const worldHeight = island.getHeightAt(position.x, position.z);
         
-        // Get all cubes from the island
-        const islandCubes = island.cubes;
-        const cubeSize = island.cubeSize;
-        const characterX = position.x;
-        const characterZ = position.z;
-        
-        // Check if character is above any cube
-        let onSecondLayer = false;
-        let onFirstLayer = false;
-        
-        for (const cube of islandCubes) {
-            // Get cube position
-            const cubeX = cube.position.x;
-            const cubeZ = cube.position.z;
-            const cubeY = cube.position.y;
-            
-            // Calculate horizontal distance from character to cube center
-            const dx = Math.abs(characterX - cubeX);
-            const dz = Math.abs(characterZ - cubeZ);
-            
-            // Check if character is within cube boundaries (with a small margin)
-            // Half cube size is used because position is at center of cube
-            const halfCubeSize = cubeSize / 2;
-            const margin = 0.1; // Small margin to avoid edge cases
-            
-            if (dx <= halfCubeSize + margin && dz <= halfCubeSize + margin) {
-                // Character is above this cube
-                if (cubeY > 0) {
-                    // This is a second layer cube
-                    onSecondLayer = true;
-                    break; // Second layer takes precedence
-                } else if (cubeY === 0) {
-                    // This is a first layer cube
-                    onFirstLayer = true;
-                    // Don't break, continue checking for second layer cubes
-                }
-            }
-        }
-        
-        // Return appropriate height based on which layer we're on
-        if (onSecondLayer) {
-            return 1.0; // Second layer height
-        } else if (onFirstLayer) {
-            return 0.0; // First layer height
+        // Convert the world height to our terrain height system
+        // In our system: 0.0 = first layer, 1.0 = second layer, waterLevel = water
+        if (worldHeight > island.cubeSize) {
+            // Second layer (height > 1)
+            return 1.0;
+        } else if (worldHeight > 0) {
+            // First layer (height = 1)
+            return 0.0;
         } else {
-            return this.waterLevel; // Not on any island cube, so we're over water
+            // Water (height = -0.1)
+            return this.waterLevel;
         }
     }
     

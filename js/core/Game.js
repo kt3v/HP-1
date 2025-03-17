@@ -125,6 +125,7 @@ class Game {
         // Update entities
         if (this.water) this.water.update(deltaTime);
         if (this.character) this.character.update(deltaTime, this.camera, this.island);
+        if (this.island && this.island.palm) this.island.palm.update(this.camera);
         
         // Update camera (includes controls update)
         this.cameraController.update();
