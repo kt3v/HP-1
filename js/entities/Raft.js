@@ -7,7 +7,7 @@ class Raft {
         this.isVisible = false;
         this.targetY = -0.7; // Start below water level (same as waterLevel in Character.js)
         this.currentY = -0.7;
-        this.verticalSpeed = 0.1; // Speed of vertical movement
+        this.verticalSpeed = 0.05; // Reduced speed of vertical movement (was 0.1)
         
         // Rotation properties
         this.currentRotation = new THREE.Euler(0, 0, 0);
@@ -174,8 +174,8 @@ class Raft {
             this.isVisible = false;
             this.targetY = -0.7; // Position below water level
             
-            // Immediately make the raft invisible to prevent seeing it underwater
-            this.mesh.visible = false;
+            // Не делаем плот сразу невидимым, пусть плавно погружается
+            // this.mesh.visible = false;
             
             // Trigger splash effects at the four corners of the raft
             if (this.splashEffect) {
@@ -266,8 +266,8 @@ class Raft {
             // Update mesh position
             this.mesh.position.y = this.currentY;
             
-            // If raft is going underwater, hide it completely once it reaches a certain depth
-            if (!this.isVisible && this.currentY < -0.5) {
+            // If raft is going underwater, hide it completely only when it почти достигает целевой глубины
+            if (!this.isVisible && this.currentY < -0.65) {
                 this.mesh.visible = false;
             }
         }
