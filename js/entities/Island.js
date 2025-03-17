@@ -8,8 +8,11 @@ class Island {
         this.secondLayerRatio = 0.5; // Ratio of second layer cubes to first layer cubes
         
         // Create materials
+        const textureLoader = new THREE.TextureLoader();
+        const sandTexture = textureLoader.load('assets/textures/cubeSand.png');
+        
         this.materials = {
-            surface: new THREE.MeshStandardMaterial({ color: 0xFFEA00 }), // Yellow
+            surface: new THREE.MeshStandardMaterial({ map: sandTexture }), // Sand texture
             dirt: new THREE.MeshStandardMaterial({ color: 0x8b4513 }) // Brown
         };
         
