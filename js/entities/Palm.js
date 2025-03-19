@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { debugController } from '../controls/DebugController.js';
 
 class Palm {
     constructor() {
@@ -40,6 +41,9 @@ class Palm {
         
         // Create bounding box for visualization
         this.createBoundingBox();
+        
+        // Register with debug controller
+        debugController.registerEntity(this);
     }
     
     // Create a bounding box similar to the character's
@@ -71,6 +75,9 @@ class Palm {
         // Add both objects to the palm
         this.mesh.add(this.boundingBox);
         this.mesh.add(this.groundMarker);
+        
+        // Initially hide debug elements
+        this.setDebugVisible(false);
     }
     
     // This method is no longer needed as we're using the Island's spawn system
@@ -121,6 +128,12 @@ class Palm {
     
     addToScene(scene) {
         scene.add(this.mesh);
+    }
+    
+    // Toggle debug elements visibility
+    setDebugVisible(visible) {
+        if (this.boundingBox) this.boundingBox.visible = visible;
+        if (this.groundMarker) this.groundMarker.visible = visible;
     }
 }
 

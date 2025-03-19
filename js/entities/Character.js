@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Raft } from './Raft.js';
+import { debugController } from '../controls/DebugController.js';
 
 class Character {
     constructor() {
@@ -38,6 +39,9 @@ class Character {
         // Create raft
         this.raft = new Raft();
         this.isOnWater = false; // Track if character is on water
+        
+        // Register with debug controller
+        debugController.registerEntity(this);
     }
     
     createDebugText() {
@@ -281,6 +285,17 @@ class Character {
         // Make sure to update the material
         this.mesh.material.needsUpdate = true;
     }
+    // Toggle debug elements visibility
+    setDebugVisible(visible) {
+        if (this.boundingBox) this.boundingBox.visible = visible;
+        if (this.groundMarker) this.groundMarker.visible = visible;
+        
+        // Toggle HTML debug element
+        if (this.debugElement) {
+            this.debugElement.style.display = visible ? 'block' : 'none';
+        }
+    }
+    
     // Update debug text position and content
     updateDebugText(terrainHeight, camera) {
         if (!this.debugElement || !camera) return;
